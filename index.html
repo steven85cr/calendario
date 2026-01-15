@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Eventos 4x4 - 2026</title>
+    <link rel="icon" href="img/logo.webp" type="image/webp">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#8bc34a">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('SW registrado', reg))
+                    .catch(err => console.log('SW error', err));
+            });
+        }
+    </script>
+
+    <style>
+        :root {
+            /* Variables traídas del Index para el Header/Footer */
+            --primary: #8bc34a;
+            --accent: #8bc34a;
+            --bg-dark: #111111;
+            --text-light: #f5f5f5;
+
+            /* Variables originales del Calendario */
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --accent-green: #66cc33;
+            --border-color: #333;
+            --shadow-glow: 0 0 15px rgba(102, 204, 51, 0.4);
+        }
+
+        /* Reset básico y Fuentes */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: 0.3s;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        /* --- HEADER MODIFICADO (Igual que Index) --- */
+        header {
+            background: rgba(0, 0, 0, 0.95);
+            padding: 15px 20px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-img {
+            height: 50px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-weight: 900;
+            font-size: 1.2rem;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        nav ul {
+            display: flex;
+            gap: 20px;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        .menu-toggle {
+            display: none;
+            font-size: 1.8rem;
+            color: var(--text-light);
+            cursor: pointer;
+        }
+
+        /* --- CONTENEDOR PRINCIPAL DEL CALENDARIO --- */
+        .main-calendar-container {
+            margin-top: 100px;
+            padding: 20px;
+        }
+
+        .calendar-header-title {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--accent-green);
+            padding-bottom: 20px;
+            max-width: 1080px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .calendar-header-title h1 {
+            font-size: 3rem;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .calendar-header-title h1 span {
+            color: var(--accent-green);
+        }
+
+        /* --- GRID DEL CALENDARIO CON BORDE SOLICITADO --- */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1080px;
+            /* Alineado con el header */
+            margin: 0 auto;
+
+            /* NUEVO BORDE Y ESTILO */
+            border: 2px solid var(--accent-green);
+            border-radius: 15px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            /* Fondo sutil para diferenciar */
+        }
+
+        .month-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .month-card:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .month-title {
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .month-card ul li {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: baseline;
+        }
+
+        .date {
+            color: var(--accent-green);
+            font-weight: bold;
+            min-width: 80px;
+            margin-right: 10px;
+        }
+
+        .event-link {
+            color: var(--text-color);
+            text-decoration: none;
+            transition: color 0.2s;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .event-link:hover {
+            color: var(--accent-green);
+            text-decoration: underline;
+        }
+
+        .event-link i {
+            margin-right: 5px;
+            color: var(--accent-green);
+            font-size: 0.8em;
+        }
+
+        .empty-msg {
+            color: #555;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+
+        /* --- FOOTER (Del Index) --- */
+        footer {
+            background: #050505;
+            padding: 50px 20px;
+            text-align: center;
+            border-top: 1px solid #8bc34a;
+            margin-top: 60px;
+        }
+
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .social-icons a {
+            font-size: 2.5rem;
+            color: white;
+            transition: transform 0.3s, color 0.3s;
+        }
+
+        .social-icons a:hover {
+            color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .calendar-header-title h1 {
+                font-size: 2rem;
+            }
+
+            .calendar-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Menú Móvil Styles */
+            .menu-toggle {
+                display: block;
+            }
+
+            nav {
+                position: fixed;
+                /* Fixed para cubrir pantalla completa en móvil */
+                top: 80px;
+                left: 0;
+                width: 100%;
+                background: rgba(0, 0, 0, 0.95);
+                border-bottom: 2px solid var(--primary);
+                transform: translateY(-150%);
+                transition: transform 0.4s ease;
+            }
+
+            nav.active {
+                transform: translateY(0);
+            }
+
+            nav ul {
+                flex-direction: column;
+                padding: 20px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-container">
+            <img src="img/logo.webp" alt="Logo 4x4" class="logo-img">
+            <div class="logo-text">4X4 DEL TRÓPICO</div>
+        </div>
+
+        <div class="menu-toggle" id="mobile-menu">
+            <i class="fas fa-bars"></i>
+        </div>
+
+        <nav id="navbar">
+            <ul>
+                <li><a href="index.html#inicio" onclick="closeMenu()">Inicio</a></li>
+                <li><a href="index.html#equipo" onclick="closeMenu()">Equipo</a></li>
+                <li><a href="index.html#videos" onclick="closeMenu()">Videos</a></li>
+                <li><a href="calendario.html" onclick="closeMenu()">Calendario</a></li>
+                <li><a href="spotify.html" onclick="closeMenu()">Spotify</a></li>
+                <li><a href="formulario/index.html" onclick="closeMenu()">Contacto</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="main-calendar-container">
+
+        <div class="calendar-header-title">
+            <h1>Eventos 4x4 <br><span>Año 2026</span></h1>
+        </div>
+
+        <div class="calendar-grid">
+            <div class="month-card">
+                <h3 class="month-title">Enero</h3>
+                <ul>
+                    <li>
+                        <span class="date">18</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Convivio+4x4+Los+Alpinos&dates=20260118/20260119&details=Convivio+4x4+organizado+por+Los+Alpinos.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Convivio 4x4 - Los Alpinos
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Febrero</h3>
+                <div class="empty-msg">Próximamente</div>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Marzo</h3>
+                <ul>
+                    <li>
+                        <span class="date">7</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Caravana+Toyotera&dates=20260307/20260308&details=Caravana+y+evento+social+de+la+comunidad+Toyota.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Caravana Toyotera
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Abril</h3>
+                <ul>
+                    <li>
+                        <span class="date">19</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=1era+fecha+Autocross&dates=20260419/20260420&details=Primera+fecha+del+Campeonato+Nacional+de+Autocross.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> 1era fecha Autocross
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Mayo</h3>
+                <ul>
+                    <li>
+                        <span class="date">1 al 3</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=La+Zaranda+4x4&dates=20260501/20260504&details=Evento+de+Trial+y+Expedicion+en+La+Zaranda.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> La Zaranda 4x4
+                        </a>
+                    </li>
+                    <li>
+                        <span class="date">17</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=1era+fecha+Trial+4x4&dates=20260517/20260518&details=Primera+fecha+del+Campeonato+Nacional+de+Trial+4x4.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> 1era fecha Trial 4x4
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Junio</h3>
+                <ul>
+                    <li>
+                        <span class="date">6 y 7</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Expo+Offroad&dates=20260606/20260608&details=Feria+y+exhibición+de+vehículos+Offroad.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Expo Offroad
+                        </a>
+                    </li>
+                    <li>
+                        <span class="date">28</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Boro+Mud+Fest&dates=20260628/20260629&details=Festival+de+barro+y+lodo.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Boro Mud Fest
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Julio</h3>
+                <ul>
+                    <li>
+                        <span class="date">5</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=2da+fecha+Autocross&dates=20260705/20260706&details=Segunda+fecha+del+Campeonato+Nacional+de+Autocross.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> 2da fecha Autocross
+                        </a>
+                    </li>
+                    <li>
+                        <span class="date">5</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=2da+fecha+Trial+4x4+(tentativa)&dates=20260705/20260706&details=Segunda+fecha+del+Campeonato+Nacional+de+Trial+4x4+(Tentativa).&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> 2da fecha Trial 4x4 (tentativa)
+                        </a>
+                    </li>
+                    <li>
+                        <span class="date">12 al 19</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=RFC+Americas+CR&dates=20260712/20260720&details=Rainforest+Challenge+Americas+en+Costa+Rica.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> RFC Americas CR
+                        </a>
+                    </li>
+                    <li>
+                        <span class="date">26</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Ticabán+4x4&dates=20260726/20260727&details=Evento+de+4x4+en+Ticabán.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Ticabán 4x4
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Agosto</h3>
+                <ul>
+                    <li>
+                        <span class="date">2</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=3ra+fecha+Autocross+Internacional+(Panamá)&dates=20260802/20260803&details=Tercera+fecha+Autocross+en+Panamá.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> 3ra fecha internacional Autocross /
+                            Panamá
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Setiembre</h3>
+                <ul>
+                    <li>
+                        <span class="date">5</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=4ta+fecha+Autocross&dates=20260905/20260906&details=Cuarta+fecha+del+Campeonato+Nacional+de+Autocross.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> 4ta fecha Autocross
+                        </a>
+                    </li>
+                    <li>
+                        <span class="date">27</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Jeep+fest+by+Rocktrac&dates=20260927/20260928&details=Festival+organizado+por+Rocktrac.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Jeep fest by Rocktrac
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Octubre</h3>
+                <ul>
+                    <li>
+                        <span class="date">16 y 17</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Ruta+Coyote&dates=20261016/20261018&details=Ruta+de+expedición+Coyote.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Ruta Coyote
+                        </a>
+                    </li>
+                    <li>
+                        <span class="date">25</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Aniversario+Club+Samuros&dates=20261025/20261026&details=Celebración+de+aniversario+del+Club+Samuros.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Aniversario Club Samuros
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Noviembre</h3>
+                <ul>
+                    <li>
+                        <span class="date">1</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Final+Autocross&dates=20261101/20261102&details=Final+del+Campeonato+Nacional+de+Autocross.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Final Autocross
+                        </a>
+                    </li>
+                    <li>
+                        <span class="date">14 y 15</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Expedición+Jacó&dates=20261114/20261116&details=Expedición+de+dos+días+en+Jacó.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Expedición Jacó
+                        </a>
+                    </li>
+                    <li>
+                        <span class="date">29</span>
+                        <a href="https://www.google.com/calendar/render?action=TEMPLATE&text=Final+Trial+4x4&dates=20261129/20261130&details=Final+del+Campeonato+Nacional+de+Trial+4x4.&sf=true&output=xml"
+                            target="_blank" class="event-link">
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i> Final Trial 4x4
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="month-card">
+                <h3 class="month-title">Diciembre</h3>
+                <div class="empty-msg">Próximamente</div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer id="footer-socials">
+        <h3 style="margin-bottom: 20px; color: var(--accent); font-size: 1.5rem;">Síguenos en nuestras redes</h3>
+        <div class="social-icons">
+            <a href="https://www.youtube.com/4x4deltropico" target="_blank" title="YouTube"><i
+                    class="fab fa-youtube"></i></a>
+            <a href="https://www.instagram.com/4x4deltropico/" target="_blank" title="Instagram"><i
+                    class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/4x4deltropico" target="_blank" title="Facebook"><i
+                    class="fab fa-facebook"></i></a>
+            <a href="https://www.tiktok.com/@4x4deltropico" target="_blank" title="TikTok"><i
+                    class="fab fa-tiktok"></i></a>
+            <a href="https://open.spotify.com/intl-es/artist/6uC7MWkNilq4J7g2xf6ePY" target="_blank" title="Spotify"><i
+                    class="fab fa-spotify"></i></a>
+        </div>
+
+        <p style="margin-top: 30px; color: #555;">© 2025 4x4 Del Trópico. Todos los derechos reservados.</p>
+    </footer>
+
+    <script>
+        const menuToggle = document.getElementById('mobile-menu');
+        const navbar = document.getElementById('navbar');
+
+        menuToggle.addEventListener('click', () => {
+            navbar.classList.toggle('active');
+            const icon = menuToggle.querySelector('i');
+            if (navbar.classList.contains('active')) {
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-times');
+            } else {
+                icon.classList.remove('fa-times');
+                icon.classList.add('fa-bars');
+            }
+        });
+
+        function closeMenu() {
+            navbar.classList.remove('active');
+            const icon = menuToggle.querySelector('i');
+            icon.classList.remove('fa-times');
+            icon.classList.add('fa-bars');
+        }
+    </script>
+
+</body>
+
+</html>
